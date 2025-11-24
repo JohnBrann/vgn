@@ -4,7 +4,8 @@ from datetime import datetime
 
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.engine import Engine, Events
-from ignite.handlers import ModelCheckpoint
+# from ignite.handlers import ModelCheckpoint
+from ignite.handlers import Checkpoint, DiskSaver
 from ignite.metrics import Average, Accuracy
 import torch
 from torch.utils import tensorboard
@@ -71,15 +72,29 @@ def main(args):
         val_writer.add_scalar("accuracy", metrics["accuracy"], epoch)
 
     # checkpoint model
-    checkpoint_handler = ModelCheckpoint(
-        logdir,
-        "vgn",
-        n_saved=100,
-        require_empty=True,
-        save_as_state_dict=True,
+    # checkpoint_handler = ModelCheckpoint(
+    #     logdir,
+    #     "vgn",
+    #     n_saved=100,
+    #     require_empty=True,
+    #     save_as_state_dict=True,
+    # )
+    # evaluator.add_event_handler(
+    #     Events.EPOCH_COMPLETED(every=1), checkpoint_handler, {args.net: net}
+    # )
+
+    # changed model save handliing from comment above
+    # checkpoint model without passing invalid kwargs
+    to_save = {args.net: net}
+    disk_saver = DiskSaver(str(logdir), require_empty=True, create_dir=True)
+    checkpoint_handler = Checkpoint(
+        to_save,       
+        disk_saver,    
+        n_saved=100  
     )
     evaluator.add_event_handler(
-        Events.EPOCH_COMPLETED(every=1), checkpoint_handler, {args.net: net}
+        Events.EPOCH_COMPLETED(every=1),
+        checkpoint_handler
     )
 
     # run the training loop
